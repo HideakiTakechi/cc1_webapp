@@ -1,0 +1,7 @@
+# 無視するディレクトリ
+nodejs/
+php/
+ruby/
+python/
+perl/
+rust/
