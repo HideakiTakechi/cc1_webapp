@@ -134,3 +134,49 @@ CREATE TABLE coupons
   PRIMARY KEY (user_id, code)
 )
   COMMENT 'クーポンテーブル';
+
+-- 13:39　ゆーこ追加
+-- インデックスの追加
+CREATE INDEX idx_chairs_id ON chairs(id);
+CREATE INDEX idx_chairs_owner_id ON chairs(owner_id);
+CREATE INDEX idx_chair_locations_chair_id ON chair_locations(chair_id);
+
+-- 一時テーブルの作成
+CREATE TEMPORARY TABLE tmp_distance AS
+SELECT
+  chair_id,
+  SUM(IFNULL(distance, 0)) AS total_distance,
+  MAX(created_at) AS total_distance_updated_at
+FROM (
+  SELECT
+    chair_id,
+    created_at,
+    ABS(latitude - LAG(latitude) OVER (PARTITION BY chair_id ORDER BY created_at)) +
+    ABS(longitude - LAG(longitude) OVER (PARTITION BY chair_id ORDER BY created_at)) AS distance
+  FROM chair_locations
+) AS tmp
+GROUP BY chair_id;
+
+-- 最終的なクエリ
+SELECT
+  c.id,
+  c.owner_id,
+  c.name,
+  c.access_token,
+  c.model,
+  c.is_active,
+  c.created_at,
+  c.updated_at,
+  IFNULL(td.total_distance, 0) AS total_distance,
+  td.total_distance_updated_at
+FROM
+  chairs c
+LEFT JOIN
+  tmp_distance td
+ON
+  td.chair_id = c.id
+WHERE
+  c.owner_id = 'S';
+
+CREATE INDEX idx_ride_id ON ride_statuses(ride_id); 
+CREATE INDEX idx_created_at ON ride_statuses(created_at);
